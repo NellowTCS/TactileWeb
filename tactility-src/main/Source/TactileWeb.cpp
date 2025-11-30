@@ -1,5 +1,3 @@
-#define LV_USE_PRIVATE_API 1
-
 #include <Tactility/app/App.h>
 #include <Tactility/app/AppContext.h>
 #include <Tactility/app/AppManifest.h>
@@ -11,12 +9,9 @@
 #include <string>
 #include <cstring>
 #include <memory>
-
-#ifdef ESP_PLATFORM
 #include <Tactility/service/wifi/Wifi.h>
 #include <esp_http_client.h>
 #include "html2text/html2text.h"
-#endif
 
 
 
@@ -39,7 +34,6 @@ private:
     std::string initial_url;
     bool is_loading = false;
 
-#ifdef ESP_PLATFORM
     // WiFi subscription management with proper typing for new PubSub template
     std::shared_ptr<tt::PubSub<tt::service::wifi::WifiEvent>> wifi_pubsub;
     tt::PubSub<tt::service::wifi::WifiEvent>::SubscriptionHandle wifi_subscription = nullptr;
@@ -68,7 +62,6 @@ private:
     bool is_wifi_connected() const {
         return tt::service::wifi::getRadioState() == tt::service::wifi::RadioState::ConnectionActive;
     }
-#endif
 
     // UI Event Handlers
     static void url_input_cb(lv_event_t* e) {
@@ -236,7 +229,6 @@ private:
         }
     }
 
-#ifdef ESP_PLATFORM
     void fetchAndDisplay(const char* url) {
         if (!url || strlen(url) == 0) {
             showError("Invalid URL provided");
@@ -349,14 +341,7 @@ private:
         TT_LOG_I("TactileWeb", "Successfully loaded content from %s (%d bytes)", 
                  url, static_cast<int>(plain_text.length()));
     }
-#else
-    void fetchAndDisplay(const char* url) {
-        clearLoading();
-        clearContent();
-        lv_textarea_set_text(text_area, "Web browsing is not supported in the simulator.\n\nThis feature requires ESP32 platform with WiFi connectivity.");
-        updateStatusLabel("Simulator Mode", LV_PALETTE_GREY);
-    }
-#endif
+
 
 public:
     void onShow(tt::app::AppContext& app_context, lv_obj_t* parent) override {
@@ -414,7 +399,6 @@ public:
         loadLastUrl();
         lv_textarea_set_text(url_input, initial_url.c_str());
 
-#ifdef ESP_PLATFORM
         // Initialize WiFi subscription with proper typing for new PubSub template
         wifi_pubsub = tt::service::wifi::getPubsub();
         if (wifi_pubsub) {
@@ -433,20 +417,15 @@ public:
                 fetchAndDisplay(last_url.c_str());
             }
         }
-#else
-        updateStatusLabel("Simulator Mode", LV_PALETTE_GREY);
-#endif
     }
 
     void onHide(tt::app::AppContext& /* app_context */) override {
-#ifdef ESP_PLATFORM
         // Properly cleanup WiFi subscription
         if (wifi_subscription && wifi_pubsub) {
             wifi_pubsub->unsubscribe(wifi_subscription);
             wifi_subscription = nullptr;
         }
         wifi_pubsub.reset();
-#endif
         
         // Reset state
         is_loading = false;
@@ -455,16 +434,16 @@ public:
 
     ~TactileWeb() override {
         // Ensure cleanup on destruction
-#ifdef ESP_PLATFORM
         if (wifi_subscription && wifi_pubsub) {
             wifi_pubsub->unsubscribe(wifi_subscription);
         }
-#endif
     }
 };
 
-extern const tt::app::AppManifest tactile_web_app = {
-    .appId = "TactileWeb",
-    .appName = "TactileWeb",
-    .createApp = app::create<TactileWeb>
+AppRegistration manifest = {
+    .onShow = TactileWeb::onShow,
 };
+
+extern "C" void app_main(void) {
+    tt_app_register(manifest);
+}
