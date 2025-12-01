@@ -51,8 +51,9 @@ static void showWifiPrompt();
 static void updateStatusLabel(const char* text, lv_palette_t color = LV_PALETTE_NONE);
 
 static bool is_wifi_connected() {
-    WifiRadioState state = tt_wifi_get_radio_state();
-    return state == WifiRadioStateConnectionActive;
+    // 3 corresponds to WifiRadioStateConnectionActive in the header order
+    // TODO: replace with enum later
+    return tt_wifi_get_radio_state() == static_cast<WifiRadioState>(3);
 }
 
 // UI Event Handlers
