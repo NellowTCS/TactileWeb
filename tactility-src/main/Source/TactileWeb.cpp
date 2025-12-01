@@ -118,7 +118,13 @@ static void saveLastUrl(const char* url) {
 
 static bool isValidUrl(const char* url) {
     if (!url || strlen(url) < 7) return false;
-    return (strncmp(url, "http://", 7) == 0 || strncmp(url, "https://", 8) == 0);
+    // TODO: Add strncmp to tt_init, and use that
+    // Check if starts with http:// or https://
+    bool is_http = (url[0] == 'h' && url[1] == 't' && url[2] == 't' && url[3] == 'p' && 
+                    url[4] == ':' && url[5] == '/' && url[6] == '/');
+    bool is_https = (strlen(url) >= 8 && url[0] == 'h' && url[1] == 't' && url[2] == 't' && 
+                     url[3] == 'p' && url[4] == 's' && url[5] == ':' && url[6] == '/' && url[7] == '/');
+    return is_http || is_https;
 }
 
 // UI State Management
