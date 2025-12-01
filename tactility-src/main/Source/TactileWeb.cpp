@@ -8,6 +8,7 @@
 #include <tt_lvgl_keyboard.h>
 #include <tt_lock.h>
 #include <tt_preferences.h>
+#include <tt_wifi.h>
 
 #include <esp_log.h>
 #include <esp_http_client.h>
@@ -17,11 +18,11 @@
 
 #include "html2text/html2text.h"
 
-extern "C" {
-#include <tt_wifi.h>
-}
-
 constexpr auto *TAG = "TactileWeb";
+
+// WiFi radio state enum values (from tt_wifi.h)
+// Since the enum is in extern "C" block, we need to use numeric values
+#define WIFI_STATE_CONNECTION_ACTIVE 3
 
 // Helper to get toolbar height based on UI scale
 static int getToolbarHeight(UiScale uiScale) {
@@ -55,7 +56,7 @@ static void updateStatusLabel(const char* text, lv_palette_t color = LV_PALETTE_
 
 static bool is_wifi_connected() {
     WifiRadioState state = tt_wifi_get_radio_state();
-    return state == WifiRadioStateConnectionActive;
+    return state == WIFI_STATE_CONNECTION_ACTIVE;
 }
 
 // UI Event Handlers
