@@ -8,7 +8,6 @@
 #include <tt_lvgl_keyboard.h>
 #include <tt_lock.h>
 #include <tt_preferences.h>
-#include <tt_wifi.h>
 
 #include <esp_log.h>
 #include <esp_http_client.h>
@@ -17,6 +16,10 @@
 #include <string>
 
 #include "html2text/html2text.h"
+
+extern "C" {
+#include <tt_wifi.h>
+}
 
 constexpr auto *TAG = "TactileWeb";
 
@@ -51,9 +54,8 @@ static void showWifiPrompt();
 static void updateStatusLabel(const char* text, lv_palette_t color = LV_PALETTE_NONE);
 
 static bool is_wifi_connected() {
-    // 3 corresponds to WifiRadioStateConnectionActive in the header order
-    // TODO: replace with enum later
-    return tt_wifi_get_radio_state() == static_cast<WifiRadioState>(3);
+    WifiRadioState state = tt_wifi_get_radio_state();
+    return state == WifiRadioStateConnectionActive;
 }
 
 // UI Event Handlers
@@ -140,7 +142,7 @@ static void clearContent() {
         retry_button = nullptr;
     }
     if (wifi_card) {
-        lv_obj_delete(wifi_card);
+        lv_obj_del(wifi_card);
         wifi_card = nullptr;
         wifi_button = nullptr; // wifi_button is a child of wifi_card, so it's deleted too
     }
@@ -372,7 +374,7 @@ static void fetchAndDisplay(const char* url) {
     updateStatusLabel("Content Loaded", LV_PALETTE_GREEN);
     
     ESP_LOGI(TAG, "Successfully loaded content from %s (%d bytes)", 
-            url, static_cast<int>(plain_text.length()));
+                url, static_cast<int>(plain_text.length()));
 }
 
 // C callback functions
@@ -413,8 +415,6 @@ extern "C" void onShow(void *app, void *data, lv_obj_t *parent) {
     lv_textarea_set_placeholder_text(url_input, "Enter URL (e.g., http://example.com)");
     lv_textarea_set_one_line(url_input, true);
     lv_obj_add_event_cb(url_input, url_input_cb, LV_EVENT_READY, nullptr);
-    // TODO: not in tt_init
-    // lv_obj_set_scrollbar_mode(url_input, LV_SCROLLBAR_MODE_OFF);
     lv_obj_set_scroll_dir(url_input, LV_DIR_NONE);
 
     // Content container
@@ -425,8 +425,6 @@ extern "C" void onShow(void *app, void *data, lv_obj_t *parent) {
     text_container = lv_obj_create(parent);
     lv_obj_set_size(text_container, parent_width - 20, container_height);
     lv_obj_align_to(text_container, url_input, LV_ALIGN_OUT_BOTTOM_MID, 0, 10);
-    // TODO: not in tt_init
-    // lv_obj_set_scrollbar_mode(text_container, LV_SCROLLBAR_MODE_AUTO);
     lv_obj_set_style_border_width(text_container, 1, 0);
     lv_obj_set_style_border_color(text_container, lv_palette_main(LV_PALETTE_GREY), 0);
 
@@ -434,8 +432,6 @@ extern "C" void onShow(void *app, void *data, lv_obj_t *parent) {
     text_area = lv_textarea_create(text_container);
     lv_obj_set_size(text_area, lv_pct(100), lv_pct(100));
     lv_obj_set_pos(text_area, 0, 0);
-    // TODO: not in tt_init
-    // lv_obj_set_scrollbar_mode(text_area, LV_SCROLLBAR_MODE_AUTO);
     lv_textarea_set_text(text_area, "Enter a URL above to browse the web.");
     
     // Load saved settings
