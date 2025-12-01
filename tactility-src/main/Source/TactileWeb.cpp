@@ -438,7 +438,7 @@ extern "C" void onShow(void *app, void *data, lv_obj_t *parent) {
     
     // Load saved settings
     loadLastUrl();
-    lv_textarea_set_text(url_input, initial_url.c_str());
+    lv_textarea_set_text(url_input, initial_url);
 
     // Initial state check
     if (!is_wifi_connected()) {
