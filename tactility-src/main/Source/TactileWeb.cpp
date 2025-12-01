@@ -61,7 +61,7 @@ static void url_input_cb(lv_event_t* e) {
     
     if (url && strlen(url) > 0) {
         fetchAndDisplay(url);
-        tt_lvgl_keyboard_hide();
+        tt_lvgl_software_keyboard_hide();
     }
 }
 
