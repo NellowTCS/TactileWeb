@@ -52,7 +52,7 @@ static void updateStatusLabel(const char* text, lv_palette_t color = LV_PALETTE_
 
 static bool is_wifi_connected() {
     WifiRadioState state = tt_wifi_get_radio_state();
-    return state == ::WifiRadioStateConnectionActive;
+    return state == WifiRadioStateConnectionActive;
 }
 
 // UI Event Handlers
@@ -78,7 +78,8 @@ static void retry_cb(lv_event_t* e) {
 static void focus_url_cb(lv_event_t* e) {
     if (url_input) {
         lv_obj_add_state(url_input, LV_STATE_FOCUSED);
-        lv_obj_scroll_to_view(url_input, LV_ANIM_ON);
+        // TODO: not in tt_init
+        // lv_obj_scroll_to_view(url_input, LV_ANIM_ON);
     }
 }
 
@@ -134,11 +135,11 @@ static void updateStatusLabel(const char* text, lv_palette_t color) {
 
 static void clearContent() {
     if (retry_button) {
-        lv_obj_del(retry_button);
+        lv_obj_delete(retry_button);
         retry_button = nullptr;
     }
     if (wifi_card) {
-        lv_obj_del(wifi_card);
+        lv_obj_delete(wifi_card);
         wifi_card = nullptr;
         wifi_button = nullptr; // wifi_button is a child of wifi_card, so it's deleted too
     }
@@ -147,7 +148,7 @@ static void clearContent() {
 static void clearLoading() {
     is_loading = false;
     if (loading_label) {
-        lv_obj_del(loading_label);
+        lv_obj_delete(loading_label);
         loading_label = nullptr;
     }
 }
@@ -411,7 +412,8 @@ extern "C" void onShow(void *app, void *data, lv_obj_t *parent) {
     lv_textarea_set_placeholder_text(url_input, "Enter URL (e.g., http://example.com)");
     lv_textarea_set_one_line(url_input, true);
     lv_obj_add_event_cb(url_input, url_input_cb, LV_EVENT_READY, nullptr);
-    lv_obj_set_scrollbar_mode(url_input, LV_SCROLLBAR_MODE_OFF);
+    // TODO: not in tt_init
+    // lv_obj_set_scrollbar_mode(url_input, LV_SCROLLBAR_MODE_OFF);
     lv_obj_set_scroll_dir(url_input, LV_DIR_NONE);
 
     // Content container
@@ -422,7 +424,8 @@ extern "C" void onShow(void *app, void *data, lv_obj_t *parent) {
     text_container = lv_obj_create(parent);
     lv_obj_set_size(text_container, parent_width - 20, container_height);
     lv_obj_align_to(text_container, url_input, LV_ALIGN_OUT_BOTTOM_MID, 0, 10);
-    lv_obj_set_scrollbar_mode(text_container, LV_SCROLLBAR_MODE_AUTO);
+    // TODO: not in tt_init
+    // lv_obj_set_scrollbar_mode(text_container, LV_SCROLLBAR_MODE_AUTO);
     lv_obj_set_style_border_width(text_container, 1, 0);
     lv_obj_set_style_border_color(text_container, lv_palette_main(LV_PALETTE_GREY), 0);
 
@@ -430,7 +433,8 @@ extern "C" void onShow(void *app, void *data, lv_obj_t *parent) {
     text_area = lv_textarea_create(text_container);
     lv_obj_set_size(text_area, lv_pct(100), lv_pct(100));
     lv_obj_set_pos(text_area, 0, 0);
-    lv_obj_set_scrollbar_mode(text_area, LV_SCROLLBAR_MODE_AUTO);
+    // TODO: not in tt_init
+    // lv_obj_set_scrollbar_mode(text_area, LV_SCROLLBAR_MODE_AUTO);
     lv_textarea_set_text(text_area, "Enter a URL above to browse the web.");
     
     // Load saved settings
