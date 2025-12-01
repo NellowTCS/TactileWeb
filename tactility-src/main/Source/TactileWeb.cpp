@@ -21,7 +21,6 @@
 constexpr auto *TAG = "TactileWeb";
 
 // WiFi radio state enum values (from tt_wifi.h)
-// Since the enum is in extern "C" block, we need to use numeric values
 #define WIFI_STATE_CONNECTION_ACTIVE 3
 
 // Helper to get toolbar height based on UI scale
@@ -45,8 +44,8 @@ static lv_obj_t *retry_button = nullptr;
 static lv_obj_t *status_label = nullptr;
 
 static AppHandle app_handle = nullptr;
-static std::string last_url;
-static std::string initial_url;
+static char last_url[256] = {0};
+static char initial_url[256] = "http://example.com";
 static bool is_loading = false;
 
 // Forward declarations
@@ -74,8 +73,8 @@ static void wifi_connect_cb(lv_event_t* e) {
 }
 
 static void retry_cb(lv_event_t* e) {
-    if (!last_url.empty()) {
-        fetchAndDisplay(last_url.c_str());
+    if (last_url[0] != '\0') {
+        fetchAndDisplay(last_url);
     }
 }
 
@@ -96,23 +95,23 @@ static void clear_cb(lv_event_t* e) {
 // URL and content management
 static void loadLastUrl() {
     PreferencesHandle prefs = tt_preferences_alloc("tactileweb");
-    initial_url = "http://example.com";
+    strcpy(initial_url, "http://example.com");
     
-    // Allocate buffer for potential URL
-    char url_buffer[256];
-    if (tt_preferences_opt_string(prefs, "last_url", url_buffer, sizeof(url_buffer))) {
-        initial_url = url_buffer;
+    // Try to load saved URL
+    if (!tt_preferences_opt_string(prefs, "last_url", initial_url, sizeof(initial_url))) {
+        strcpy(initial_url, "http://example.com");
     }
     
-    last_url = initial_url;
+    strcpy(last_url, initial_url);
     tt_preferences_free(prefs);
 }
 
 static void saveLastUrl(const char* url) {
     if (url && strlen(url) > 0) {
-        last_url = url;
+        strncpy(last_url, url, sizeof(last_url) - 1);
+        last_url[sizeof(last_url) - 1] = '\0';
         PreferencesHandle prefs = tt_preferences_alloc("tactileweb");
-        tt_preferences_put_string(prefs, "last_url", last_url.c_str());
+        tt_preferences_put_string(prefs, "last_url", last_url);
         tt_preferences_free(prefs);
     }
 }
@@ -143,7 +142,7 @@ static void clearContent() {
         retry_button = nullptr;
     }
     if (wifi_card) {
-        lv_obj_del(wifi_card);
+        lv_obj_delete(wifi_card);
         wifi_card = nullptr;
         wifi_button = nullptr; // wifi_button is a child of wifi_card, so it's deleted too
     }
@@ -227,9 +226,9 @@ static void showLoading(const char* url = nullptr) {
     
     loading_label = lv_label_create(text_area);
     if (url) {
-        std::string loading_text = "Loading: ";
-        loading_text += url;
-        lv_label_set_text(loading_label, loading_text.c_str());
+        char loading_text[300];
+        snprintf(loading_text, sizeof(loading_text), "Loading: %s", url);
+        lv_label_set_text(loading_label, loading_text);
     } else {
         lv_label_set_text(loading_label, "Loading...");
     }
@@ -255,10 +254,10 @@ static void showError(const char* error_msg, const char* url = nullptr) {
     clearLoading();
     clearContent();
     
-    std::string full_error = "Error: ";
-    full_error += error_msg;
+    char full_error[512];
+    snprintf(full_error, sizeof(full_error), "Error: %s", error_msg);
     
-    lv_textarea_set_text(text_area, full_error.c_str());
+    lv_textarea_set_text(text_area, full_error);
     
     if (url && strlen(url) > 0) {
         showRetryButton();
@@ -312,8 +311,9 @@ static void fetchAndDisplay(const char* url) {
     // Get response code
     int status_code = esp_http_client_get_status_code(client);
     if (status_code < 200 || status_code >= 300) {
-        std::string error_msg = "HTTP Error: " + std::to_string(status_code);
-        showError(error_msg.c_str(), url);
+        char error_msg[64];
+        snprintf(error_msg, sizeof(error_msg), "HTTP Error: %d", status_code);
+        showError(error_msg, url);
         esp_http_client_cleanup(client);
         return;
     }
@@ -337,8 +337,9 @@ static void fetchAndDisplay(const char* url) {
         
         // Update loading progress
         if (loading_label) {
-            std::string progress = "Loading... (" + std::to_string(total_read) + " bytes)";
-            lv_label_set_text(loading_label, progress.c_str());
+            char progress[64];
+            snprintf(progress, sizeof(progress), "Loading... (%d bytes)", total_read);
+            lv_label_set_text(loading_label, progress);
         }
     }
 
@@ -444,9 +445,9 @@ extern "C" void onShow(void *app, void *data, lv_obj_t *parent) {
         showWifiPrompt();
     } else {
         updateStatusLabel("WiFi Connected", LV_PALETTE_GREEN);
-        if (!last_url.empty() && last_url != initial_url) {
+        if (last_url[0] != '\0' && strcmp(last_url, initial_url) != 0) {
             // Auto-load last URL if it's different from default
-            fetchAndDisplay(last_url.c_str());
+            fetchAndDisplay(last_url);
         }
     }
 }
