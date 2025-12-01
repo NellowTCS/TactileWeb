@@ -1,0 +1,23 @@
+name: Build TactileWeb
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  tactility-build:
+    name: Build Tactility (ESP-IDF)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Build Tactility app
+        uses: ./.github/actions/tactility
+        with:
+          upload_artifact: 'true'
+          use_custom_sdk: 'false'
