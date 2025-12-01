@@ -52,7 +52,7 @@ static void updateStatusLabel(const char* text, lv_palette_t color = LV_PALETTE_
 
 static bool is_wifi_connected() {
     WifiRadioState state = tt_wifi_get_radio_state();
-    return state == WifiRadioStateConnectionActive;
+    return state == ::WifiRadioStateConnectionActive;
 }
 
 // UI Event Handlers
