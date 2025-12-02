@@ -405,8 +405,9 @@ static void fetchAndDisplay(const char* url) {
     clearContent();
     lv_textarea_set_text(text_area, plain_text);
     
+    // TODO: Not in tt_init
     // Scroll to top
-    lv_obj_scroll_to_y(text_area, 0, LV_ANIM_ON);
+    // lv_obj_scroll_to_y(text_area, 0, LV_ANIM_ON);
     
     saveLastUrl(url);
     updateStatusLabel("Content Loaded", LV_PALETTE_GREEN);
