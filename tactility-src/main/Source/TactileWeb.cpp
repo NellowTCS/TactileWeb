@@ -372,39 +372,34 @@ static void fetchAndDisplay(const char* url) {
         return;
     }
 
-    // Convert HTML to plain text using a temporary std::string just for the conversion
-    char* plain_text = nullptr;
-    {
-        std::string html_str(html_content);
-        std::string converted = html2text(html_str);
-        
-        if (converted.empty()) {
-            converted = html_str; // Fallback to raw HTML
-        }
-        
-        if (converted.empty()) {
-            converted = "Content received but could not be processed.";
-        }
-        
-        // Limit text length for display
-        if (converted.length() > 8192) {
-            converted.resize(8192);
-            converted += "\n\n[Content truncated...]";
-        }
-        
-        // Copy to C string
-        plain_text = (char*)malloc(converted.length() + 1);
-        if (plain_text) {
-            strcpy(plain_text, converted.c_str());
-        }
-    }
-    
+    // Convert HTML to plain text using C function
+    char* converted = html2text_c(html_content);
     free(html_content);
     
+    if (!converted) {
+        showError("Out of memory during conversion", url);
+        return;
+    }
+    
+    // Allocate final display buffer (8KB max)
+    char* plain_text = (char*)malloc(8192 + 64);
     if (!plain_text) {
+        free(converted);
         showError("Out of memory", url);
         return;
     }
+    
+    size_t converted_len = strlen(converted);
+    if (converted_len > 8192) {
+        memcpy(plain_text, converted, 8192);
+        strcpy(plain_text + 8192, "\n\n[Content truncated...]");
+    } else if (converted_len > 0) {
+        strcpy(plain_text, converted);
+    } else {
+        strcpy(plain_text, "Content received but could not be processed.");
+    }
+    
+    free(converted);
 
     clearLoading();
     clearContent();
