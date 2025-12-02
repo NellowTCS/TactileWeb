@@ -327,19 +327,33 @@ static void fetchAndDisplay(const char* url) {
     int content_length = esp_http_client_fetch_headers(client);
     ESP_LOGI(TAG, "Content length: %d, Status: %d", content_length, status_code);
 
-    // Read content in chunks
-    std::string html_content;
+    // Allocate buffer for HTML content (32KB max)
+    const int max_content_size = 32768;
+    char* html_content = (char*)malloc(max_content_size + 1);
+    if (!html_content) {
+        showError("Out of memory", url);
+        esp_http_client_cleanup(client);
+        return;
+    }
+    
     char buffer[2048];
     int total_read = 0;
-    const int max_content_size = 32768; // 32KB limit
 
     while (total_read < max_content_size) {
         int len = esp_http_client_read(client, buffer, sizeof(buffer) - 1);
         if (len <= 0) break;
         
-        buffer[len] = '\0';
-        html_content.append(buffer, len);
-        total_read += len;
+        // Copy to html_content buffer
+        if (total_read + len <= max_content_size) {
+            memcpy(html_content + total_read, buffer, len);
+            total_read += len;
+        } else {
+            // Would overflow, copy what fits
+            int remaining = max_content_size - total_read;
+            memcpy(html_content + total_read, buffer, remaining);
+            total_read = max_content_size;
+            break;
+        }
         
         // Update loading progress
         if (loading_label) {
@@ -348,32 +362,53 @@ static void fetchAndDisplay(const char* url) {
             lv_label_set_text(loading_label, progress);
         }
     }
-
+    
+    html_content[total_read] = '\0';
     esp_http_client_cleanup(client);
 
-    if (html_content.empty()) {
+    if (total_read == 0) {
+        free(html_content);
         showError("No content received from server", url);
         return;
     }
 
-    // Convert HTML to plain text
-    std::string plain_text = html2text(html_content);
-    if (plain_text.empty()) {
-        plain_text = html_content; // Fallback to raw HTML
+    // Convert HTML to plain text using a temporary std::string just for the conversion
+    char* plain_text = nullptr;
+    {
+        std::string html_str(html_content);
+        std::string converted = html2text(html_str);
+        
+        if (converted.empty()) {
+            converted = html_str; // Fallback to raw HTML
+        }
+        
+        if (converted.empty()) {
+            converted = "Content received but could not be processed.";
+        }
+        
+        // Limit text length for display
+        if (converted.length() > 8192) {
+            converted.resize(8192);
+            converted += "\n\n[Content truncated...]";
+        }
+        
+        // Copy to C string
+        plain_text = (char*)malloc(converted.length() + 1);
+        if (plain_text) {
+            strcpy(plain_text, converted.c_str());
+        }
     }
-
-    if (plain_text.empty()) {
-        plain_text = "Content received but could not be processed.";
-    }
-
-    // Limit text length for display
-    if (plain_text.length() > 8192) {
-        plain_text = plain_text.substr(0, 8192) + "\n\n[Content truncated...]";
+    
+    free(html_content);
+    
+    if (!plain_text) {
+        showError("Out of memory", url);
+        return;
     }
 
     clearLoading();
     clearContent();
-    lv_textarea_set_text(text_area, plain_text.c_str());
+    lv_textarea_set_text(text_area, plain_text);
     
     // Scroll to top
     lv_obj_scroll_to_y(text_area, 0, LV_ANIM_ON);
@@ -381,8 +416,9 @@ static void fetchAndDisplay(const char* url) {
     saveLastUrl(url);
     updateStatusLabel("Content Loaded", LV_PALETTE_GREEN);
     
-    ESP_LOGI(TAG, "Successfully loaded content from %s (%d bytes)", 
-                url, static_cast<int>(plain_text.length()));
+    ESP_LOGI(TAG, "Successfully loaded content from %s (%d bytes)", url, (int)strlen(plain_text));
+    
+    free(plain_text);
 }
 
 // C callback functions
