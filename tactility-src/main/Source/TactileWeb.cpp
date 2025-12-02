@@ -309,7 +309,7 @@ static void fetchAndDisplay(const char* url) {
     esp_err_t err = esp_http_client_open(client, 0);
     if (err != ESP_OK) {
         showError("Failed to connect to server", url);
-        ESP_LOGE(TAG, "HTTP open failed: %s", esp_err_to_name(err));
+        ESP_LOGE(TAG, "HTTP open failed: error code %d", err);
         esp_http_client_cleanup(client);
         return;
     }
